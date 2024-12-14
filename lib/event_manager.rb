@@ -1,6 +1,7 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5,"0")[0..4]
@@ -43,6 +44,10 @@ def clean_phone_numbers (number)
   end
 end
 
+def clean_time(time)
+  DateTime.strptime(time, '%m/%d/%y %k:%M')
+end
+
 puts 'EventManager initialized.'
 
 contents = CSV.open(
@@ -53,6 +58,9 @@ contents = CSV.open(
 
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
+
+hours = Hash.new 0
+days = Hash.new 0
 
 contents.each do |row|
   id = row[0]
@@ -66,8 +74,16 @@ contents.each do |row|
   
   number = clean_phone_numbers(row[:homephone])
 
-  puts number
+  time = clean_time(row[:regdate])
 
-  # save_thank_you_letter(id, form_letter) 
+  hours[time.hour] += 1 
+  days[time.wday] += 1
+
+  save_thank_you_letter(id, form_letter) 
 
 end
+
+time_target = hours.max_by{|k,v| v}[0]
+day_target = days.max_by{|k, v| v}[0]
+
+puts "#{time_target} #{day_target}"
